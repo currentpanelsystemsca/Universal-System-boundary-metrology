@@ -1,23 +1,74 @@
 # Direction-aware calibration and flow metadata
 
-## Discovery
+## Research Observations
 
-This document records a discovery and implementation proposal, not a tested finding.
+### Direction-Aware Calibration
+Date: 2026-10-30
+Status: Research observation (not validated in CPS)
 
-Direction-aware calibration may matter for bidirectional electrical measurement systems. A single averaged calibration profile can discard information about how a sensor behaves when current flows in opposite directions. In CPS and metrology contexts, it is reasonable to preserve directional context throughout storage, analysis, and explanation rather than reducing it to a scalar average.
+Published Hall-sensor and motor-control calibration examples indicate that
+forward and reverse operation may not always produce identical measured
+behavior. Some systems perform separate calibration passes for each
+direction and preserve direction-specific correction information rather
+than averaging both directions into a single model.
 
-Candidate engineering insights:
+Potential CPS relevance:
 
-- Direction-dependent calibration may improve bidirectional measurement accuracy.
-- Import and export energy flow may require separate historical baselines, calibration tables, anomaly thresholds, and confidence models.
-- Battery charging and battery discharging may represent distinct operating states even when measured current magnitude is similar.
-- Sensor drift detection may improve when calibration is evaluated separately for positive and negative current flow directions.
+- Power-flow direction may be a first-class property of a measurement.
+- Import and export energy flow may require separate historical baselines.
+- Battery charging and battery discharging may require separate operating
+  models even when current magnitude is identical.
+- Direction-dependent behavior should be preserved until testing shows
+  that directional differences are insignificant.
 
-These remain hypotheses until testing validates them.
+Working CPS principle:
+
+"Do not average away directional behavior until equivalent behavior has
+been demonstrated."
+
+Design implications for future investigation:
+
+- Direction-aware measurement packets
+- Direction-specific calibration profiles
+- Direction-specific anomaly thresholds
+- Direction-specific historical baselines
+- Direction-aware explanation generation within Buddy
+
+Examples:
+
+IMPORT
+  Utility -> Building
+
+EXPORT
+  Building -> Utility
+
+CHARGING
+  Energy -> Battery
+
+DISCHARGING
+  Battery -> Load
+
+What this does not prove:
+
+This observation does not establish that CPS sensors will exhibit
+direction-dependent calibration effects. It only suggests that
+direction-dependent behavior should be preserved and available for
+analysis until testing determines whether separate calibration models
+provide meaningful benefit.
+
+Evidence level:
+
+Research observation only.
+No CPS hardware testing has been performed.
+Requires validation against reference instrumentation.
 
 ## Implementation proposal
 
-The corresponding design response is a schema that preserves flow direction, direction-specific calibration, and historical context without asserting a tested conclusion.
+The JSON Schema below is a design response to this observation. It is not
+proof of the observation and it does not claim that separate calibration
+models are required. It is a way to preserve flow direction, directional
+calibration context, and historical context so the system can test whether
+those distinctions are useful.
 
 ```json
 {
@@ -36,7 +87,7 @@ The corresponding design response is a schema that preserves flow direction, dir
     },
     "flowDirection": {
       "type": "string",
-      "enum": ["import", "export", "unknown"]
+      "enum": ["import", "export", "charging", "discharging", "unknown"]
     },
     "value": {
       "type": "number"
@@ -49,6 +100,8 @@ The corresponding design response is a schema that preserves flow direction, dir
       "properties": {
         "import": { "type": "object" },
         "export": { "type": "object" },
+        "charging": { "type": "object" },
+        "discharging": { "type": "object" },
         "notes": { "type": "string" }
       },
       "additionalProperties": true
@@ -72,7 +125,9 @@ The corresponding design response is a schema that preserves flow direction, dir
 
 This design keeps the discovery and the implementation separate:
 
-- Discovery: direction-aware calibration may matter.
-- Implementation proposal: the schema models flow direction and direction-specific calibration explicitly.
+- Discovery: direction itself may carry relevant information.
+- Implementation: the schema preserves that information for analysis.
 
-This matches the repository philosophy of maintaining a clear boundary between hypotheses, tested findings, and proposal work until validation supports a stronger claim.
+This is consistent with the repository rule that observations, hypotheses,
+and validated findings should remain distinct until evidence supports a
+stronger conclusion.
